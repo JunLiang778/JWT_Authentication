@@ -1,0 +1,56 @@
+<%- include('partials/header'); -%>
+
+<form>
+    <h2>Sign up</h2>
+    <label for="email">Email</label>
+    <input type="text" name="email" required/>
+    <div class="email error"></div>
+
+    <label for="password">Password</label>
+    <input type="password" name="password" required/>
+    <div class="password error"></div>
+    
+    <button>Sign up</button><!--do not have to put 'submit' type bc whenever we click a button in a form, it auto fires submit event-->
+</form>
+
+<script>
+    const form = document.querySelector('form');
+    const emailError = document.querySelector('.email.error');
+    const passwordError = document.querySelector('.password.error');
+    form.addEventListener('submit',async (e)=>{
+        e.preventDefault();
+
+        //reset errors 
+        emailError.textContent= '';
+        passwordError.textContent= '';
+
+        //get the values 
+        const email = form.email.value;
+        const password = form.password.value;
+        try {
+            const res = await fetch('/signup',{
+                method: 'POST',
+                body:JSON.stringify({email:email,password:password}),
+                headers:{'Content-Type':'application/json'}
+            })
+
+            const data = await res.json();//refer to the authController to see what it returns back
+            // console.log(data)
+
+            if(data.errors){
+                emailError.textContent= data.errors.email;
+                passwordError.textContent= data.errors.password;
+            }
+
+            //if valid, redirect to home page
+            if(data.user){
+                location.assign('/'); //this is how we redirect in frontend (req home page from server)
+            }
+        }catch(err){
+            console.log(err);
+        }
+
+    })
+</script>
+
+<%- include('partials/footer'); -%>

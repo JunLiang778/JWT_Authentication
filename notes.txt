@@ -1,0 +1,128 @@
+Testing Routes with Postman 
+
+-Postman allows us to simulate reqs to a server when we DONT have a frontend
+-simulate reqs using postman to our different endpoints 
+---------------------------------------------------------------------------------------------------
+Mongoose Hook 
+-special function which fires after a certain mongoose event happens
+-eg: we could make a hook which fires a function after documents r saved/deleted to/from 
+the db (view User.js)
+---------------------------------------------------------------------------------------------------
+Hashing Passwords
+test1234 --> Hashing Algorithm --> A6g3431032md
+
+This alone isnt secure bc hackers can reverse engineer simple hash password 
+Another step is to generate smth called SALT & attach it to the password before it's hashed
+A salt is a string of chars seperate from the password 
+
+hAjfgtest1234 --> Hashing Algorithm --> $5.6A6g34c9 
+
+The end result is a hased password & salt combination which is then stored in the db 
+When the user later tries to log in to authenticate themselves, we would take the 
+password they enter to log in with, add the salt to that password, hash it thro 
+the same HASH ALGORITHM, then we compare it with their hashed password in db 
+
+-bcrypt 
+---------------------------------------------------------------------------------------------------
+Cookies Primer 
+
+-Store data in a user's browser 
+-eg : name=shaun, age=30, isEmployee= true 
+-When a req is sent to our server, we can create a cookie at the moment in time. We can 
+decide at that point what data the cookie will hold as well as things like how long the 
+cookie should last inside the browser before it expires and it's automatically deleted.
+The cookie is then sent back to the browser in the server's response and the browser 
+REGISTERS IT. Now, that cookie is storing data inside the user's browser. 
+Every req the browser makes thereafter to our server, it sends w/e cookies we stored 
+to the server with that req and on the server, we can access it. 
+
+-This process is the backbone of how we'll be authenticating users whereby this cookie 
+HOLDS A JWT to identify our user. When the server sees that, they can verify and authenticate 
+them. 
+
+//cookies 
+app.get('/set-cookies',(req,res)=>{
+  // res.setHeader('Set-Cookie','newUser=true');
+
+  //using cookieParser instead (3rd party middleware)
+  //3rd arg - options obj
+  res.cookie('newUser',false);
+  res.cookie('isEmployee',true,{maxAge: 1000* 60*60*24,httpOnly:true}) 
+  //maxAge of this cookie (remove after 1 day)
+  //secure: true -> the cookie is only gonna be sent when we have https connection
+  //httpOnly:true -> we cannot access the cookie from the JS /front edn & they can ONLY be transferred via the http protocol (back&forth between client & server) 
+
+  //both of the 2 properties (httpOnly & secure) r very important when it comes to auth
+  //bc in production, u should only use auth cookies over an https secure connection, NOT HTTP 
+  //and u dont want them to be accessed or modified by the client side code 
+  
+  res.send('you got the cookies!');
+
+  //in the browser, ull get the cookies in application tab (inspect)
+  //name-value pair 
+  //the expires says 'session', which means once u close the tab, the cookie is gone
+  //however, u can browse through different page on this website & still have the cookie 
+  //GOING TO DIFFERENT WEBSITE (domain name) will destory the cookie 
+
+  //access the cookie in browser console -> document.cookie
+})
+
+app.get('/read-cookies',(req,res)=>{
+  //if we go to another page (of the same domain), we can access the cookies that waere set 
+  const cookies = req.cookies;
+  console.log(cookies);
+  res.json(cookies);
+})
+
+---------------------------------------------------------------------------------------------------
+JWT theory 
+
+https://www.youtube.com/watch?v=LZq0G8WUaII
+
+-Cookies are sent to the server by the browser for every req they make 
+-There is a pitfall when using JWT inside cookies for authentication, it potentially 
+open up ur site to cross-site request forgery attacks
+-a malicious site can take a user's authentication cookie and then make requests 
+to our server posing as that user 
+-if our server exposes state changing end points, then this is a security risks bc 
+it means that the malicious site can then MANIPULATE UR USER DATA and potentially 
+access more of it.
+
+JWT Signing 
+1. Headers 
+-tells the sever what type of signature is being used (meta)
+
+2. Payload 
+-used to identify the user (eg: contains user id)
+
+3. Signature 
+-makes the token secure (like a stamp of authenticity)
+
+1. When our server is creating the JWT after a user successfully signs in OR signs up, 
+then it creates the header part and the payload part first & ENCODE them both.
+2. To sign the token or to add the signature, it takes both of those 2 parts and it HASHES
+THEM TOGFETHER with something called a SECRET, which is a secure secret string STORED 
+ON THE SERVER. (this secret mus temain a secret bc it's the key to unclocking the jwt 
+and the only way to verify a token)
+3. When those 3 things are hashed together, it creates the TOKEN SIGNATURE. The token 
+signature is then added to the end of the JWT, after the other 2 parts. It can then be 
+sent to the browser
+
+The resulting token looks smth like this:
+
+    iwqeJ1Jsks.wi1lNSDKsdam.NSDDSAKSD342knwqk233
+
+Our JWT is then stored in a cookie and sent to the browser.
+So for any subsequent req to the server, the token is then received by the server inside
+the cookie. 
+The server can then verify this token on every req BY LOOKING AT THE HEADER AND THE PAYLAOD 
+and HASHING THEM WITH THE SECRET. If the hashed value of those 2 things with a secret 
+matches the signature, it knows that it's valid and the JWT has not been tampered with 
+on the client.
+If the JWT has been tampered (eg: data in the payload modified), then those 2 parts (either
+the header or payload) would have been changed (the encoded part). And when theyre 
+hashed tgt with the secret, they would not match the signature = not authenticated. 
+
+-JWT package (jsonwebtoken)
+
+
